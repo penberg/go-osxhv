@@ -174,6 +174,43 @@ func (vcpu *HvVCPU) GetExecTime() (uint64, error) {
 	return time, nil
 }
 
+func (vcpu *HvVCPU) VmxReadVMCS(field uint32) (uint64, error) {
+	var value uint64
+	if err := C.hv_vmx_vcpu_read_vmcs(vcpu.vcpuid, (C.uint32_t)(field), (*C.uint64_t)(&value)); err != C.HV_SUCCESS {
+		return ^uint64(0), hvError(err)
+	}
+	return value, nil
+}
+
+func (vcpu *HvVCPU) VmxWriteVMCS(field uint32, value uint64) error {
+	if err := C.hv_vmx_vcpu_write_vmcs(vcpu.vcpuid, (C.uint32_t)(field), (C.uint64_t)(value)); err != C.HV_SUCCESS {
+		return hvError(err)
+	}
+	return nil
+}
+
+const (
+	HV_VMX_CAP_PINBASED   = C.HV_VMX_CAP_PINBASED
+	HV_VMX_CAP_PROCBASED  = C.HV_VMX_CAP_PROCBASED
+	HV_VMX_CAP_PROCBASED2 = C.HV_VMX_CAP_PROCBASED2
+	HV_VMX_CAP_ENTRY      = C.HV_VMX_CAP_ENTRY
+)
+
+func HvVmxReadCapability(field int) (uint64, error) {
+	var value uint64
+	if err := C.hv_vmx_read_capability(C.hv_vmx_capability_t(field), (*C.uint64_t)(&value)); err != C.HV_SUCCESS {
+		return ^uint64(0), hvError(err)
+	}
+	return value, nil
+}
+
+func (vcpu *HvVCPU) VmxSetAPICAddress(gpa uintptr) error {
+	if err := C.hv_vmx_vcpu_set_apic_address(vcpu.vcpuid, (C.hv_gpaddr_t)(gpa)); err != C.HV_SUCCESS {
+		return hvError(err)
+	}
+	return nil
+}
+
 func hvError(err C.hv_return_t) error {
 	return fmt.Errorf("%s (%d)", hvErrorString(err), err)
 }
